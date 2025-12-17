@@ -1,2 +1,3 @@
-project2_data/
-data/
+data/raw
+data/segmentations
+data/slicer
