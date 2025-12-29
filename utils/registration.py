@@ -3,9 +3,10 @@ import SimpleITK as sitk
 def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
     """
     Estimate affine transform to align im_mov to im_ref.
-    Optionally uses masks to focus registration on bone.
+    Uses multi-resolution, masks, and robust MI configuration.
     Returns a SimpleITK Transform.
     """
+
     init_transform = sitk.CenteredTransformInitializer(
         im_ref,
         im_mov,
@@ -16,14 +17,22 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
     reg = sitk.ImageRegistrationMethod()
     reg.SetInitialTransform(init_transform, inPlace=False)
 
-    # Metric
+    # --- Metric ---
     reg.SetMetricAsMattesMutualInformation(numberOfHistogramBins=50)
+    reg.SetMetricSamplingStrategy(reg.RANDOM)
+    reg.SetMetricSamplingPercentage(0.2)  # 20% voxels
+
     if mask_ref is not None:
         reg.SetMetricFixedMask(mask_ref)
     if mask_mov is not None:
         reg.SetMetricMovingMask(mask_mov)
 
-    # Optimizer
+    # --- Multi-resolution pyramid ---
+    reg.SetShrinkFactorsPerLevel([4, 2, 1])
+    reg.SetSmoothingSigmasPerLevel([2, 1, 0])
+    reg.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+
+    # --- Optimizer ---
     reg.SetOptimizerAsGradientDescent(
         learningRate=1.0,
         numberOfIterations=500,
@@ -32,19 +41,21 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
     )
     reg.SetOptimizerScalesFromPhysicalShift()
 
-    # Interpolator
+    # --- Interpolator ---
     reg.SetInterpolator(sitk.sitkLinear)
 
     # --- Execute ---
-    final_transform = reg.Execute(sitk.Cast(im_ref, sitk.sitkFloat32),
-                                  sitk.Cast(im_mov, sitk.sitkFloat32))
+    final_transform = reg.Execute(
+        sitk.Cast(im_ref, sitk.sitkFloat32),
+        sitk.Cast(im_mov, sitk.sitkFloat32)
+    )
+
     if verbose:
+        print("Final transform:")
         print(final_transform)
-        print("--------")
-        print("Optimizer stop condition: {0}".format(reg.GetOptimizerStopConditionDescription()))
-        print("Number of iterations: {0}".format(reg.GetOptimizerIteration()))
+        print("Optimizer stop condition:", reg.GetOptimizerStopConditionDescription())
+        print("Iterations:", reg.GetOptimizerIteration())
         print("Final metric value:", reg.GetMetricValue())
-        print("--------")
 
     return final_transform
 
