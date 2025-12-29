@@ -13,4 +13,5 @@ __all__=[
     'clean_bone_mask',
     'show_interactive',
     'show_interactive_overlay',
+    'downsample',
 ]
