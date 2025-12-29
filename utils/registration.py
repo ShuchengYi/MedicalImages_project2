@@ -6,8 +6,6 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
     Optionally uses masks to focus registration on bone.
     Returns a SimpleITK Transform.
     """
-
-    # --- Initial transform: center alignment ---
     init_transform = sitk.CenteredTransformInitializer(
         im_ref,
         im_mov,
@@ -15,7 +13,6 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
         sitk.CenteredTransformInitializerFilter.GEOMETRY
     )
 
-    # --- Registration setup ---
     reg = sitk.ImageRegistrationMethod()
     reg.SetInitialTransform(init_transform, inPlace=False)
 
@@ -29,7 +26,7 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
     # Optimizer
     reg.SetOptimizerAsGradientDescent(
         learningRate=1.0,
-        numberOfIterations=300,
+        numberOfIterations=500,
         convergenceMinimumValue=1e-6,
         convergenceWindowSize=10
     )
@@ -46,6 +43,7 @@ def est_lin_transf(im_ref, im_mov, mask_ref=None, mask_mov=None, verbose=False):
         print("--------")
         print("Optimizer stop condition: {0}".format(reg.GetOptimizerStopConditionDescription()))
         print("Number of iterations: {0}".format(reg.GetOptimizerIteration()))
+        print("Final metric value:", reg.GetMetricValue())
         print("--------")
 
     return final_transform

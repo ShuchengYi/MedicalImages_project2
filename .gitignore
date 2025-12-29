@@ -2,4 +2,5 @@ data/raw
 data/segmentations
 data/slicer
 data/linear_registrations
+data/test_linreg
 notebooks/no_include
